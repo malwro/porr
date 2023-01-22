@@ -53,7 +53,7 @@ void Counter::count(void)
 void Counter::writeToFile(std::string filename)
 {
     map_t::iterator i;
-    std::ofstream output(filename);
+    std::ofstream output(filename, std::ofstream::out | std::ofstream::trunc);
 
     if (output.is_open()) {
         for (i = this->map.begin();
