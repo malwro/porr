@@ -4,6 +4,11 @@
 #include <string>
 #include <algorithm>
 
+Counter::Counter(int numThreads)
+{
+    this->numThreads = numThreads;
+}
+
 void Counter::readFromFile(std::istream& input)
 {
     std::string word;
@@ -32,9 +37,9 @@ std::string Counter::transform(std::string& word)
 
 void Counter::count(void)
 {
-    map_t localMaps[PAR_NUM_THREADS];
+    map_t localMaps[this->numThreads];
 
-#pragma omp parallel num_threads(PAR_NUM_THREADS)
+#pragma omp parallel num_threads(this->numThreads)
 {
 #pragma omp for
         for (int i = 0; i < container.size(); ++i) {
@@ -43,7 +48,7 @@ void Counter::count(void)
         }
 }
 #pragma omp barrier
-    for (int j = 0; j < PAR_NUM_THREADS; ++j) {
+    for (int j = 0; j < this->numThreads; ++j) {
         for (auto el : localMaps[j]) {
             map[el.first] += el.second;
         }

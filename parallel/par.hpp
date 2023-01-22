@@ -6,8 +6,6 @@
 #include <vector>
 #include <omp.h>
 
-#define PAR_NUM_THREADS 12
-
 typedef std::map<std::string, int> map_t;
 
 /* Class for counting the occurences
@@ -15,7 +13,8 @@ typedef std::map<std::string, int> map_t;
 class Counter
 {
 public:
-    Counter() {}
+    /* omp num threads */
+    Counter(int numThreads);
     /* Reads contents of input file into
      * internal container */
     void readFromFile(std::istream& input);
@@ -28,6 +27,7 @@ public:
     /* Clears internal map */
     void clear(void);
 private:
+    int numThreads;
     /* Stores occurences of words
      * from input file */
     map_t map;

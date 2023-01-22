@@ -5,11 +5,10 @@
 int main(int argc, char* argv[])
 {
     int i = 0;
-    Counter cnt;
     
     std::ifstream input(argv[1]);
 
-    if (argc < 2) {
+    if (argc < 3) {
         std::cout << "Usage: " << argv[0] << " <filename>" << std::endl;
         return -1;
     }
@@ -18,6 +17,8 @@ int main(int argc, char* argv[])
         std::cout << "Failed to open input file: " << argv[1] << std::endl;
         return -1;
     }
+
+    Counter cnt(std::atoi(argv[2]));
 
     cnt.readFromFile(input);
 
