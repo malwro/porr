@@ -7,45 +7,53 @@ import scala.concurrent.duration.NANOSECONDS
 import scala.jdk.CollectionConverters._
 
 object Main extends App {
-
+  //Definicja przypadków dla których eksperymenty zostaną przeprowadzone
   val testNames = Seq("10_multiplied_text", "50_multiplied_text", "150_multiplied_text")
-  val numberOfCores = Seq(1,2,4,6,8,10,12, 20)
-  val samples = 10
+  val numberOfCores = Seq(1, 2, 4, 6, 8, 10, 12, 16, 20)
+  val partitions = Seq(32)
+  val samples = 2
 
+  //Uruchomienie testów
   testNames.foreach { testName =>
-    val results = List.fill(samples)(numberOfCores).flatten.map { cores =>
-      (cores, runTest(testName, cores))
+    val results = List.fill(samples)(numberOfCores).flatten.flatMap { cores =>
+      partitions.map(numberOfPartitions => (cores, numberOfPartitions, runTest(testName, cores, numberOfPartitions)))
+
     }
-    Files.write(Paths.get(s"./result/${testName}_result.txt"), results.map(_.toString()).asJava, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+
+    //Zapisanie wyników testów do pliku
+    Files.write(
+      Paths.get(s"./result/${testName}_result.txt"),
+      results.map(_.toString()).asJava,
+      StandardOpenOption.CREATE,
+      StandardOpenOption.TRUNCATE_EXISTING
+    )
   }
 
-  def runTest(testName: String, numberOfThreads: Int) = {
+  //Funkcja przeprowadzająca test
+  def runTest(testName: String, numberOfThreads: Int, numberOfPartitions: Int) = {
+    //Uruchomienie klastra Spark w trybie standalone korzystającego z zadanej liczby rdzeni
     val spark = SparkSession.builder()
       .master(s"local[$numberOfThreads]")
       .appName("PORR")
       .getOrCreate()
 
-    val start = System.nanoTime()
-    spark.sparkContext
-      .textFile(s"./txt_files_for_tests/$testName.txt")
-      .flatMap(_.split("[ \n\t]"))
-      .countByValue()
-    val end = System.nanoTime()
 
-    spark.close()
-    NANOSECONDS.toMillis(end - start)
+    //Początek pomiaru czasu
+    val start = System.nanoTime()
+    val rdd = spark.sparkContext//pobranie kontekstu aplikacji klienta Spark
+      .textFile(s"./txt_files_for_tests/$testName.txt", numberOfPartitions)//wczytanie pliku z zadaną liczbą partycji
+      .flatMap(_.split("[ \n\t]"))//podział pliku na słowa
+
+    val result = rdd.countByValue()//zliczenie wystąpień słów
+    //Zapisanie wyniku zliczania do pliku
+    Files.write(Paths.get(s"./result/dump.txt"),
+      result.map(_.toString()).asJava,
+      StandardOpenOption.CREATE,
+      StandardOpenOption.TRUNCATE_EXISTING)
+    val end = System.nanoTime()//zakończenie poamiru czasu
+
+    spark.close()//zakmnięcie klastra
+    NANOSECONDS.toMillis(end - start)//zwrócenie czasu trwania obliczeń
   }
 
 }
-
-/**
- * 10_multiplied_text
- * local[1] - Time taken: 4642 ms
- * local[3] - Time taken: 3354 ms
- * local[16] - Time taken: 3363 ms
- *
- * 150_multiplied_text
- * local[1] - Time taken: 42944 ms
- * local[16] - Time taken: 9161 ms
- * local[160] - Time taken: 10466 ms
- */
